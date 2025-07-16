@@ -5,7 +5,6 @@ A beautiful, modern frontend for the Socratic Tutor AI application built with Re
 [![Azure Static Web Apps CI/CD](https://github.com/CakeRepository/justVite/actions/workflows/azure-static-web-apps-jolly-field-0cedd170f.yml/badge.svg)](https://github.com/CakeRepository/justVite/actions/workflows/azure-static-web-apps-jolly-field-0cedd170f.yml)
 
 ## Features
-
 - 🎓 **Interactive Learning**: Engage with AI tutors through guided questioning
 - 🤖 **Multi-Agent System**: Three specialized AI agents (Socratic, Conversationalist, Explainer)
 - 📚 **Topic Selection**: Choose from curated topics or enter custom questions
