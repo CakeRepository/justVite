@@ -1,5 +1,6 @@
 import { EDGE_FUNCTION_URL } from '../config/constants';
 import { TutorResponse, Message, TutorState } from '../types';
+import { supabase } from '../config/supabase';
 
 export class TutorService {
   private static instance: TutorService;
@@ -18,11 +19,15 @@ export class TutorService {
     model: string = 'gpt-4o-mini'
   ): Promise<TutorResponse> {
     try {
+      // Get the current session (this will include auth token if user is logged in)
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
+
       const response = await fetch(EDGE_FUNCTION_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
           messages: messages.map(msg => ({

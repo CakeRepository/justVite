@@ -1,4 +1,5 @@
 import { ChatSession, Message } from '../types';
+import { supabase } from '../config/supabase';
 
 const STORAGE_KEY = 'socratic_tutor_sessions';
 
@@ -12,15 +13,22 @@ export class StorageService {
     return StorageService.instance;
   }
 
-  saveSessions(sessions: ChatSession[]): void {
+  // Migration helper: Load sessions from localStorage and save to Supabase
+  async migrateSessions(): Promise<void> {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+      const localSessions = this.loadLocalSessions();
+      if (localSessions.length > 0) {
+        await this.saveSessionsToSupabase(localSessions);
+        // Clear localStorage after successful migration
+        localStorage.removeItem(STORAGE_KEY);
+      }
     } catch (error) {
-      console.error('Error saving sessions:', error);
+      console.error('Error migrating sessions:', error);
     }
   }
 
-  loadSessions(): ChatSession[] {
+  // Load sessions from localStorage (for migration)
+  private loadLocalSessions(): ChatSession[] {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (!saved) return [];
@@ -36,8 +44,120 @@ export class StorageService {
         }))
       }));
     } catch (error) {
+      console.error('Error loading local sessions:', error);
+      return [];
+    }
+  }
+
+  // Save sessions to Supabase
+  private async saveSessionsToSupabase(sessions: ChatSession[]): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    for (const session of sessions) {
+      await supabase.from('chat_sessions').upsert({
+        id: session.id,
+        user_id: user.id,
+        topic: session.topic,
+        messages: session.messages,
+        state: session.state,
+        created_at: session.createdAt.toISOString(),
+        updated_at: session.updatedAt.toISOString()
+      });
+    }
+  }
+
+  // Load sessions from Supabase (authenticated users) or localStorage (fallback)
+  async loadSessions(): Promise<ChatSession[]> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Load from Supabase for authenticated users
+        const { data, error } = await supabase
+          .from('chat_sessions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false });
+
+        if (error) {
+          console.error('Error loading sessions from Supabase:', error);
+          return [];
+        }
+
+        return data?.map(session => ({
+          id: session.id,
+          topic: session.topic,
+          messages: session.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          })),
+          state: session.state,
+          createdAt: new Date(session.created_at),
+          updatedAt: new Date(session.updated_at)
+        })) || [];
+      } else {
+        // Fallback to localStorage for unauthenticated users
+        return this.loadLocalSessions();
+      }
+    } catch (error) {
       console.error('Error loading sessions:', error);
       return [];
+    }
+  }
+
+  // Save sessions to Supabase (authenticated users) or localStorage (fallback)
+  async saveSessions(sessions: ChatSession[]): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Save to Supabase for authenticated users
+        await this.saveSessionsToSupabase(sessions);
+      } else {
+        // Fallback to localStorage for unauthenticated users
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+      }
+    } catch (error) {
+      console.error('Error saving sessions:', error);
+    }
+  }
+
+  // Save a single session
+  async saveSession(session: ChatSession): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        await supabase.from('chat_sessions').upsert({
+          id: session.id,
+          user_id: user.id,
+          topic: session.topic,
+          messages: session.messages,
+          state: session.state,
+          created_at: session.createdAt.toISOString(),
+          updated_at: session.updatedAt.toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('Error saving session:', error);
+    }
+  }
+
+  // Delete a session from Supabase
+  async deleteSessionFromDB(sessionId: string): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        await supabase
+          .from('chat_sessions')
+          .delete()
+          .eq('id', sessionId)
+          .eq('user_id', user.id);
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
     }
   }
 
@@ -65,7 +185,8 @@ export class StorageService {
     );
   }
 
-  deleteSession(sessions: ChatSession[], sessionId: string): ChatSession[] {
+  // Helper method for local array operations
+  removeSessionFromArray(sessions: ChatSession[], sessionId: string): ChatSession[] {
     return sessions.filter(session => session.id !== sessionId);
   }
 
