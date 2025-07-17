@@ -11,6 +11,7 @@ import {
 
 export class GamificationService {
   private static instance: GamificationService;
+  private static readonly XP_PER_LEVEL = 100;
 
   static getInstance(): GamificationService {
     if (!GamificationService.instance) {
