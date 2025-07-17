@@ -9,12 +9,13 @@ import TestConnection from './components/TestConnection';
 import ChatTest from './components/ChatTest';
 import AuthForm from './components/AuthForm';
 import UserProfile from './components/UserProfile';
+import GamifiedDashboard from './components/GamifiedDashboard';
 
-type AppView = 'topic-selector' | 'chat' | 'session-list' | 'test' | 'chat-test';
+type AppView = 'dashboard' | 'topic-selector' | 'chat' | 'session-list' | 'test' | 'chat-test';
 
 const App: React.FC = () => {
   const { user, loading } = useAuth();
-  const [view, setView] = React.useState<AppView>('topic-selector');
+  const [view, setView] = React.useState<AppView>('dashboard');
   const [sessions, setSessions] = React.useState<ChatSession[]>([]);
   const [currentSession, setCurrentSession] = React.useState<ChatSession | null>(null);
   const [showProfile, setShowProfile] = React.useState(false);
@@ -129,6 +130,10 @@ const App: React.FC = () => {
       {/* User Profile Modal */}
       {showProfile && (
         <UserProfile onClose={() => setShowProfile(false)} />
+      )}
+
+      {view === 'dashboard' && (
+        <GamifiedDashboard />
       )}
 
       {view === 'topic-selector' && (
