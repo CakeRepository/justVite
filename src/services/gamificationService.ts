@@ -95,6 +95,9 @@ export class GamificationService {
       .single();
     
     if (error) throw error;
+    if (!data) {
+      throw new Error('Failed to start course: No data returned from the database.');
+    }
     return data;
   }
 
