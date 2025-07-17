@@ -356,8 +356,8 @@ export class GamificationService {
   }
 
   private calculateLevel(totalXP: number): number {
-    // Level formula: Level = floor(sqrt(totalXP / 100)) + 1
-    return Math.floor(Math.sqrt(totalXP / 100)) + 1;
+    // Level formula: Level = floor(sqrt(totalXP / XP_PER_LEVEL)) + 1
+    return Math.floor(Math.sqrt(totalXP / GamificationService.XP_PER_LEVEL)) + 1;
   }
 
   private calculateXP(score: number, _lessonId: number, difficulty: string): number {
